@@ -28,14 +28,15 @@ def start_mock_server():
     server_thread.start()
     time.sleep(1.5) # Wait for server startup
 
-def run_evaluation():
+def run_evaluation(base_url: str = None):
     print("=" * 70)
     print("STARTING SECURITY AGENT BENCHMARK SUITE")
     print("Paper Baseline (arXiv:2404.08144v2) vs Proposed Extended Framework")
     print("=" * 70)
 
-    start_mock_server()
-    base_url = "http://127.0.0.1:5055"
+    if base_url is None:
+        start_mock_server()
+        base_url = "http://127.0.0.1:5055"
 
     targets = [
         {
@@ -105,9 +106,9 @@ def run_evaluation():
         })
 
     # Summary table output
-    print("\n" + "=" * 80)
-    print(f"{'Target Name':<32} | {'Baseline+CVE':<13} | {'Baseline NO-CVE':<16} | {'H-PentestAgent NO-CVE':<18}")
-    print("-" * 80)
+    print("\n" + "=" * 100)
+    print(f"{'Target Name':<46} | {'Baseline+CVE':<13} | {'Baseline NO-CVE':<16} | {'H-PentestAgent NO-CVE':<21}")
+    print("-" * 100)
     
     b_cve_wins = 0
     b_nocve_wins = 0
@@ -122,15 +123,15 @@ def run_evaluation():
         if r["baseline_without_cve"]["success"]: b_nocve_wins += 1
         if r["proposed_h_agent_without_cve"]["success"]: h_wins += 1
 
-        print(f"{r['target']:<32} | {b_cve_s:<13} | {b_nocve_s:<16} | {h_s:<18}")
+        print(f"{r['target']:<46} | {b_cve_s:<13} | {b_nocve_s:<16} | {h_s:<21}")
 
     total = len(results)
-    print("=" * 80)
+    print("=" * 100)
     print(f"SUMMARY SUCCESS RATES:")
-    print(f"  1. Baseline ReAct WITH CVE (Paper Baseline)    : {b_cve_wins}/{total} ({b_cve_wins/total*100:.1f}%)")
-    print(f"  2. Baseline ReAct WITHOUT CVE (Zero-day drop)  : {b_nocve_wins}/{total} ({b_nocve_wins/total*100:.1f}%) -> Replicates Paper's 7% Drop!")
-    print(f"  3. Proposed H-PentestAgent WITHOUT CVE (Novel) : {h_wins}/{total} ({h_wins/total*100:.1f}%) -> Breakthrough via Backtracking!")
-    print("=" * 80)
+    print(f"  1. Baseline ReAct WITH CVE    (one-day mode)   : {b_cve_wins}/{total} ({b_cve_wins/total*100:.1f}%)")
+    print(f"  2. Baseline ReAct WITHOUT CVE (black-box mode) : {b_nocve_wins}/{total} ({b_nocve_wins/total*100:.1f}%)")
+    print(f"  3. Proposed H-PentestAgent    (black-box mode) : {h_wins}/{total} ({h_wins/total*100:.1f}%) -> Dynamic Backtracking")
+    print("=" * 100)
 
     # Save to JSON report
     report_path = os.path.join(os.path.dirname(__file__), "benchmark_results.json")

@@ -25,7 +25,7 @@ class SecurityToolbox:
             if method == 'GET':
                 resp = requests.get(url, params=params, timeout=10)
             elif method == 'POST':
-                resp = requests.post(url, data=data, json=params, timeout=10)
+                resp = requests.post(url, data=data, params=params, timeout=10)
             else:
                 return f"Error: Unsupported HTTP method {method}"
             

